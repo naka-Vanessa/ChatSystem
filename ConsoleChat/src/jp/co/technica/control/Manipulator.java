@@ -223,6 +223,8 @@ public class Manipulator {
 						cr.pushMessage((Message)d);
 					}
 				};
+				cr.executeHostInput();
+
 			}else{
 				System.out.println("Connection failed...");
 			}
@@ -264,7 +266,7 @@ public class Manipulator {
 					m.messageSourceIpAddress = hostState.getIpAddr();
 					m.name = hostState.getUserName();
 					try{
-						m.message = String.format("☆★☆%s@%sが参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
+						m.message = String.format("☆★☆[%s@%s]が参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
 					}catch(Exception e){
 						e.printStackTrace();
 					}
