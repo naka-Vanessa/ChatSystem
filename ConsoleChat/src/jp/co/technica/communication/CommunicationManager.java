@@ -85,8 +85,7 @@ public class CommunicationManager {
 					    out.writeObject(d);
 					    byte[] bytes = bos.toByteArray();
 					    if(bytes.length <= PACKET_SIZE){
-//					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
-					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName("127.0.0.1"),this.remotePortNumber);
+					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
 					    }
 					    break;
 					}
