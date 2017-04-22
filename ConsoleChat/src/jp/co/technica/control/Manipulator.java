@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.concurrent.Executors;
 
 import jp.co.technica.communication.CommunicationManager;
+import jp.co.technica.communication.data.Connection;
 import jp.co.technica.communication.data.Data;
 import jp.co.technica.communication.data.Inquire;
 import jp.co.technica.communication.data.Message;
-import jp.co.technica.communication.data.User;
-import jp.co.technica.host.ChatRoom;
+import jp.co.technica.communication.state.User;
+import jp.co.technica.host.ChatRoomClient;
+import jp.co.technica.host.ChatRoomHost;
 
 public class Manipulator {
 	private String bloadCastAddress;
@@ -28,6 +30,7 @@ public class Manipulator {
 	private static final int INPUT_CONSOLE_RECEIVER_PORT_NUMBER = 54323;
 
 	private IReceiveDataHooker hooker;
+	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
 	private boolean exitFlg =false;
 
 	private static Manipulator THIS_INSTANCE = new Manipulator();
@@ -110,7 +113,7 @@ public class Manipulator {
 	private void executeOtherUserChatRoomCheck(String[] commands){
 		try {
 			InetAddress remoteAddress;
-			if(commands.length  <= 1 || commands[1].equals("")){
+			if(commands.length  < 2 || commands[1].equals("")){
 				if(bloadCastAddress == null || bloadCastAddress.isEmpty()){
 					System.out.println("Please select a broadcast address.");
 
@@ -154,7 +157,6 @@ public class Manipulator {
 					Inquire inquire = (Inquire)d;
 					if(inquire.comandType == Inquire.COMAND_TYPE_ANSWER){
 						list.add(inquire);
-						System.out.println(inquire.sourceIpAddress);
 					}
 				}
 			};
@@ -167,18 +169,72 @@ public class Manipulator {
 			hooker = null;
 			System.out.println("Address that responded");
 			for(Inquire inq : list){
-				System.out.println(String.format("%s@%s", inq.sourceIpAddress,inq.name));
+				System.out.println(String.format(">%s@%s", inq.sourceIpAddress,inq.name));
 			}
 		} catch (IOException | InterruptedException e) {
 			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
 		}
+
+		hooker = NULL_HOOKER;
 	}
 	private void executeOtherUserOherUserChatRoomAccess(String[] commands){
+		try {
+			InetAddress remoteAddress;
+			if(commands.length  < 2 || commands[1].equals("")){
+				throw new IllegalArgumentException("接続先IPアドレスを指定してください");
+			}else{
+				remoteAddress = Inet4Address.getByName(commands[1]);
+			}
+			Connection connect = new Connection();
 
+			connect.remoteIpAddress = remoteAddress.getHostAddress();
+			connect.sourceIpAddress = hostState.getIpAddr();
+			connect.comandType = Connection.COMAND_TYPE_REQUEST;
+
+			manager.sendData(connect);
+
+			System.out.print("Please wait ");
+			Connection ret = new Connection();
+			hooker = (Data d) ->{
+				if(d instanceof Connection){
+					Connection con = (Connection)d;
+					if(con.sourceIpAddress.equals(remoteAddress.getHostAddress()) &&
+							con.comandType == Connection.COMAND_TYPE_ANSWER){
+						ret.connectionFlg = con.connectionFlg;
+						ret.user = con.user;
+
+					}
+				}
+			};
+
+			for(int i= 0;i<10;i++){
+				Thread.sleep(1000);
+				if(ret.connectionFlg)break;
+			}
+
+			if(ret.connectionFlg){
+				ChatRoomClient cr = new ChatRoomClient(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,ret.user,(Message m)->{
+					manager.sendData(m);
+				});
+				hooker = (Data d)->{
+					if(d instanceof Message){
+						cr.pushMessage((Message)d);
+					}
+				};
+			}else{
+				System.out.println("Connection failed...");
+			}
+
+		} catch (IOException | InterruptedException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
+		}
+
+		hooker = NULL_HOOKER;
 	}
 	private void executeHostChatRoomStart(String[] commands){
-		ChatRoom cr = new ChatRoom(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,(Message m)->{
+		ChatRoomHost cr = new ChatRoomHost(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,(Message m)->{
 			manager.sendData(m);
 		});
 		hooker = (Data d)->{
@@ -193,9 +249,27 @@ public class Manipulator {
 					ans.remoteIpAddress = inq.sourceIpAddress;
 					manager.sendData(ans);
 				}
+			}else if(d instanceof Connection){
+				Connection con = (Connection)d;
+				if(con.comandType == Connection.COMAND_TYPE_REQUEST){
+					Connection ans = new Connection();
+					ans.remoteIpAddress = con.sourceIpAddress;
+					ans.comandType = Connection.COMAND_TYPE_ANSWER;
+					ans.connectionFlg = true;
+					ans.user = hostState;
+
+					Message m = new Message();
+					m.sourceIpAddress = hostState.getIpAddr();
+					m.messageSourceIpAddress = hostState.getIpAddr();
+					m.message = String.format("☆★☆%s@%sが参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
+					cr.pushMessage(m);
+
+					manager.sendData(ans);
+				}
 			}
 		};
 		cr.executeHostInput();
+		hooker = NULL_HOOKER;
 	}
 
 

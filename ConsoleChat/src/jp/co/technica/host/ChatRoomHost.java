@@ -11,11 +11,11 @@ import java.util.concurrent.Executors;
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Data;
 import jp.co.technica.communication.data.Message;
-import jp.co.technica.communication.data.User;
+import jp.co.technica.communication.state.User;
 
-public class ChatRoom {
-	CommunicationManager manager;
-	private ExecutorService hostMessageThread = Executors.newSingleThreadExecutor();
+public class ChatRoomHost {
+	CommunicationManager consoleInputManager;
+	private ExecutorService consoleMessageThread = Executors.newSingleThreadExecutor();
 	private final int  systemPortNumber;
 	private final int consolePortNumber;
 	private boolean executionFlg = false;
@@ -32,7 +32,7 @@ public class ChatRoom {
 	 */
 	ConcurrentHashMap<String, User> map = new ConcurrentHashMap<>();
 
-	public ChatRoom(int systemPortNumber,int consolePortNumber,User hostUser,IPushMessageListener listener){
+	public ChatRoomHost(int systemPortNumber,int consolePortNumber,User hostUser,IPushMessageListener listener){
 		this.ipml = listener;
 		this.hostState =hostUser;
 		this.systemPortNumber = systemPortNumber;
@@ -42,6 +42,9 @@ public class ChatRoom {
 	public void pushMessage(Message message){
 		System.out.println(String.format("%s@%s>%s", message.name,message.messageSourceIpAddress,message.message));
 		diffusionMessage(message);
+	}
+	public void addClientUser(User user){
+		map.put(user.getIpAddr(), user);
 	}
 
 	/**
@@ -56,7 +59,7 @@ public class ChatRoom {
 		startMessageInputConsole(); //blocked
 
 		executionFlg = false;
-		hostMessageThread.shutdown();
+		consoleMessageThread.shutdown();
 	}
 
 	private void diffusionMessage(Message message){
@@ -68,24 +71,23 @@ public class ChatRoom {
 			Message m = new Message();
 			m.copy(message);
 			m.remoteIpAddress = st.getIpAddr();
+			m.sourceIpAddress = hostState.getIpAddr();
 			ipml.pushMessage(m);
 		}
 
 	}
 
 	private void startHostMessageReceive(){
-		hostMessageThread.submit(()->{
+		consoleMessageThread.submit(()->{
 			while(executionFlg){
-				Data d = manager.popData();
+				Data d = consoleInputManager.popData();
 				if(d instanceof Message){
 					Message m = (Message)d;
 					m.name = hostState.getUserName();
 					m.messageSourceIpAddress = hostState.getIpAddr();
-
 					pushMessage(m);
 				}
 			}
-			System.out.println("console receive out");
 		});
 
 	}
@@ -108,6 +110,6 @@ public class ChatRoom {
 	}
 
 	private void createHostMessageReceiver(){
-		manager = CommunicationManager.createCommunicationManagerReceiveOnly(systemPortNumber,consolePortNumber,false);
+		consoleInputManager = CommunicationManager.createCommunicationManagerReceiveOnly(systemPortNumber,consolePortNumber,false);
 	}
 }

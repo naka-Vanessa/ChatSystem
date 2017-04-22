@@ -1,4 +1,4 @@
-package jp.co.technica.communication.data;
+package jp.co.technica.communication.state;
 
 public class User {
 	private final String userName;

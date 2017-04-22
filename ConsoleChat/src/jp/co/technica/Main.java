@@ -3,7 +3,7 @@ package jp.co.technica;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import jp.co.technica.communication.data.User;
+import jp.co.technica.communication.state.User;
 import jp.co.technica.control.Manipulator;
 
 public class Main {
