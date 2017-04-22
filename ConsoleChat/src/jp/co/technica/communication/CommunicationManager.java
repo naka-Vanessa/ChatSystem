@@ -104,7 +104,7 @@ public class CommunicationManager {
 	private void createCommunicationReceiver() {
 //		receiver = new CommunicationReceiver(socket, handl,PACKET_SIZE);
 		try {
-			receiver = new CommunicationReceiver(hostPortNumber,handl,PACKET_SIZE);
+			receiver = new CommunicationReceiver(hostAddress, hostPortNumber,handl,PACKET_SIZE);
 		} catch (SocketException e) {
 			// TODO 自動生成された catch ブロック
 			e.printStackTrace();

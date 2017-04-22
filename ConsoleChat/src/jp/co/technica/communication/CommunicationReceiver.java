@@ -3,6 +3,7 @@ package jp.co.technica.communication;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 
 public class CommunicationReceiver implements Runnable{
@@ -21,8 +22,8 @@ public class CommunicationReceiver implements Runnable{
 	 * @throws SocketException
 	 */
 //	CommunicationReceiver(DatagramSocket socket,IPacketHandler handr,int packetSize){
-	CommunicationReceiver(int hostPortNumber, IPacketHandler handr,int packetSize) throws SocketException{
-		this.socket = new DatagramSocket(hostPortNumber);
+	CommunicationReceiver(InetAddress hostAddress,int hostPortNumber, IPacketHandler handr,int packetSize) throws SocketException{
+		this.socket = new DatagramSocket(hostPortNumber,hostAddress);
 		continuationFlg = true;
 		packet = new DatagramPacket(new byte[2048], 2048);
 		this.handr = handr;
