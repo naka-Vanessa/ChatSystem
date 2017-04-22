@@ -262,6 +262,7 @@ public class Manipulator {
 					Message m = new Message();
 					m.sourceIpAddress = hostState.getIpAddr();
 					m.messageSourceIpAddress = hostState.getIpAddr();
+					m.name = hostState.getUserName();
 					try{
 						m.message = String.format("☆★☆%s@%sが参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
 					}catch(Exception e){
