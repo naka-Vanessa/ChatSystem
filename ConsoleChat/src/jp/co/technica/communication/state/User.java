@@ -1,6 +1,8 @@
 package jp.co.technica.communication.state;
 
-public class User {
+import java.io.Serializable;
+
+public class User implements Serializable{
 	private final String userName;
 	private final String ipAddr;
 

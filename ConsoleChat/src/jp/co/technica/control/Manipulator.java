@@ -189,6 +189,7 @@ public class Manipulator {
 			Connection connect = new Connection();
 
 			connect.remoteIpAddress = remoteAddress.getHostAddress();
+//			connect.remoteIpAddress = "192.168.1.255";
 			connect.sourceIpAddress = hostState.getIpAddr();
 			connect.comandType = Connection.COMAND_TYPE_REQUEST;
 
@@ -203,7 +204,6 @@ public class Manipulator {
 							con.comandType == Connection.COMAND_TYPE_ANSWER){
 						ret.connectionFlg = con.connectionFlg;
 						ret.user = con.user;
-
 					}
 				}
 			};
@@ -261,9 +261,12 @@ public class Manipulator {
 					Message m = new Message();
 					m.sourceIpAddress = hostState.getIpAddr();
 					m.messageSourceIpAddress = hostState.getIpAddr();
-					m.message = String.format("☆★☆%s@%sが参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
+					try{
+						m.message = String.format("☆★☆%s@%sが参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
+					}catch(Exception e){
+						e.printStackTrace();
+					}
 					cr.pushMessage(m);
-
 					manager.sendData(ans);
 				}
 			}
