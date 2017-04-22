@@ -191,6 +191,7 @@ public class Manipulator {
 			connect.remoteIpAddress = remoteAddress.getHostAddress();
 //			connect.remoteIpAddress = "192.168.1.255";
 			connect.sourceIpAddress = hostState.getIpAddr();
+			connect.user = hostState;
 			connect.comandType = Connection.COMAND_TYPE_REQUEST;
 
 			manager.sendData(connect);
