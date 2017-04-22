@@ -213,7 +213,9 @@ public class Manipulator {
 		}
 
 		boolean isAccurateCommand(String command){
-			return commandDefinition.equals(command);
+			boolean ret = false;
+			if(commandDefinition != null)ret = commandDefinition.equals(command);
+			return ret;
 		};
 
 		private static Order getOrder(String command){
