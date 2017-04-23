@@ -1,9 +1,7 @@
 package jp.co.technica.host;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,8 +38,11 @@ public class ChatRoomHost {
 	}
 
 	public void pushMessage(Message message){
-		System.out.println(String.format("%s@%s>%s", message.name,message.messageSourceIpAddress,message.message));
-		diffusionMessage(message);
+		User st = map.get(message.sourceIpAddress);
+		if(st != null && st.getUserName().equals(message.name)){
+			System.out.println(String.format("%s@%s>%s", message.name,message.messageSourceIpAddress,message.message));
+			diffusionMessage(message);
+		}
 	}
 	public void addClientUser(User user){
 		map.put(user.getIpAddr(), user);
@@ -63,11 +64,19 @@ public class ChatRoomHost {
 	}
 
 	private void diffusionMessage(Message message){
-		for(Entry<String, User> s : map.entrySet()){
-			User st = s.getValue();
-			if(st.getIpAddr().equals(message.messageSourceIpAddress)){
-				continue;
-			}
+//		for(Entry<String, User> s : map.entrySet()){
+//			User st = s.getValue();
+//			if(st.getIpAddr().equals(message.messageSourceIpAddress)){
+//				continue;
+//			}
+//			Message m = new Message();
+//			m.copy(message);
+//			m.remoteIpAddress = st.getIpAddr();
+//			m.sourceIpAddress = hostState.getIpAddr();
+//			ipml.pushMessage(m);
+//		}
+		User st = map.get(message.sourceIpAddress);
+		if(st != null && st.getUserName().equals(message.name)){
 			Message m = new Message();
 			m.copy(message);
 			m.remoteIpAddress = st.getIpAddr();
@@ -93,9 +102,7 @@ public class ChatRoomHost {
 	}
 
 	private void startMessageInputConsole(){
-		ProcessBuilder pb = new ProcessBuilder("cmd.exe","/C","start","java","jp.co.technica.host.InputConsole",String.valueOf(systemPortNumber),String.valueOf(consolePortNumber),hostState.getIpAddr(),hostState.getUserName());
-		pb.directory(new File(System.getProperty("user.dir") + "\\bin"));
-		System.out.println(pb.directory().getPath());
+		ProcessBuilder pb = new ProcessBuilder("cmd.exe","/C","start","java","-cp","ConsoleChat.jar","jp.co.technica.host.InputConsole",String.valueOf(systemPortNumber),String.valueOf(consolePortNumber),hostState.getIpAddr(),hostState.getUserName());
 		try {
 			Process p = pb.start();
 			InputStream is = p.getInputStream();

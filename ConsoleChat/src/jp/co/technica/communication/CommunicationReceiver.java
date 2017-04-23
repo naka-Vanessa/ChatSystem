@@ -11,6 +11,7 @@ public class CommunicationReceiver implements Runnable{
 	private boolean continuationFlg = false;
 	private DatagramPacket packet;
 	private final IPacketHandler handr;
+	private final DatagramPacket blockReleasePacket;
 
 	interface IPacketHandler{
 		void popPackt(DatagramPacket packet);
@@ -26,6 +27,7 @@ public class CommunicationReceiver implements Runnable{
 		this.socket = new DatagramSocket(hostPortNumber,hostAddress);
 		continuationFlg = true;
 		packet = new DatagramPacket(new byte[2048], 2048);
+		blockReleasePacket = new DatagramPacket(new byte[1], 1,hostAddress,hostPortNumber);
 		this.handr = handr;
 	}
 
@@ -43,6 +45,12 @@ public class CommunicationReceiver implements Runnable{
 
 	public void exit(){
 		continuationFlg = false;
+		try {
+			socket.send(blockReleasePacket);
+		} catch (IOException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
+		}
 		socket.close();
 	}
 }

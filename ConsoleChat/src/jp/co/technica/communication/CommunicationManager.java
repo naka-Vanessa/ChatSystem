@@ -29,7 +29,7 @@ public class CommunicationManager {
 	private final int remotePortNumber;
 	private final ExecutorService threadPool = Executors.newFixedThreadPool(10);
 	private InetAddress hostAddress;
-	private boolean executionFlg = false;
+	private boolean executionFlg = true;
 	private static final int PACKET_SIZE = 2048;
 
 	private ConcurrentLinkedQueue<Data> receiveQueue;
@@ -165,7 +165,7 @@ public class CommunicationManager {
 	public Data popData(){
 		Data d = null;
 		synchronized(receiveLockObject){
-			while(true){
+			while(executionFlg){
 				d = receiveQueue.poll();
 				if(d == null){
 					try {

@@ -10,6 +10,7 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import jp.co.technica.communication.CommunicationManager;
@@ -31,7 +32,8 @@ public class Manipulator {
 
 	private IReceiveDataHooker hooker;
 	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
-	private boolean exitFlg =false;
+	private boolean executionFlg =true;
+	private ExecutorService outsideDataPicker =  Executors.newSingleThreadExecutor();
 
 	private static Manipulator THIS_INSTANCE = new Manipulator();
 
@@ -43,6 +45,14 @@ public class Manipulator {
 	 * シングルトンインスタンス
 	 */
 	private Manipulator(){
+		outsideDataPicker.submit(()->{
+			while(executionFlg){
+				Data d = manager.popData();
+				if(hooker != null){
+					hooker.hook(d);
+				}
+			}
+		});
 	}
 
 	public static Manipulator getInstance(){
@@ -56,15 +66,6 @@ public class Manipulator {
 		}
 
 		manager = CommunicationManager.createCommunicationManager(MAIN_PROCESS_PORT_NUMBER,true);
-
-		Executors.newSingleThreadExecutor().submit(()->{
-			while(exitFlg == false){
-				Data d = manager.popData();
-				if(hooker != null){
-					hooker.hook(d);
-				}
-			}
-		});
 
 		System.out.println("Hello [" + hostState.getUserName() + "]");
 		System.out.println("Please enter the command. The command can be checked with [:help].");
@@ -99,6 +100,7 @@ public class Manipulator {
 				e.printStackTrace();
 			}
 		}
+		exit();
 		System.out.println("see you soon !!");
 	}
 
@@ -271,12 +273,19 @@ public class Manipulator {
 						e.printStackTrace();
 					}
 					cr.pushMessage(m);
+					cr.addClientUser(con.user);
 					manager.sendData(ans);
 				}
 			}
 		};
 		cr.executeHostInput();
 		hooker = NULL_HOOKER;
+	}
+
+	public void exit(){
+		executionFlg = false;
+		manager.exit();
+		outsideDataPicker.shutdown();
 	}
 
 
