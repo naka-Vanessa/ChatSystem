@@ -203,7 +203,7 @@ public class Manipulator {
 
 			manager.sendData(connect);
 
-			System.out.print("Please wait ");
+			System.out.println("Please wait ");
 
 			Connection ret = new Connection();
 
