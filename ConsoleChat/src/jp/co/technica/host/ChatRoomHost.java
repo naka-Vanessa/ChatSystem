@@ -68,6 +68,7 @@ public class ChatRoomHost {
 		startMessageInputConsole(); //blocked
 
 		executionFlg = false;
+		consoleInputManager.exit();
 		consoleMessageFuture.cancel(true);
 		consoleMessageThread.shutdown();
 	}

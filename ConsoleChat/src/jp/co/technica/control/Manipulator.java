@@ -69,7 +69,7 @@ public class Manipulator {
 			}
 		});
 
-		System.out.println("Hello [" + hostState.getUserName() + "]");
+		System.out.println("Hello!! [" + hostState.getUserName() + "]");
 		System.out.println("Please enter the command. The command can be checked with [:help].");
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		boolean loop = true;
