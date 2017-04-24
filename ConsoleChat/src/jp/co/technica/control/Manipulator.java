@@ -234,7 +234,7 @@ public class Manipulator {
 					}else if(d instanceof Connection){
 						Connection c = (Connection)d;
 						if(c.comandType == Connection.COMAND_TYPE_FORCED && c.connectionFlg == false){
-
+							crc.executeForciblyLeaveRoom();
 						}
 					}
 				};
