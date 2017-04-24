@@ -46,17 +46,7 @@ public class Manipulator {
 		if(hostState == null){
 			throw new IllegalArgumentException("Host information is not set");
 		}
-
 		manager = CommunicationManager.createCommunicationManager(MAIN_PROCESS_PORT_NUMBER,true);
-
-//		pickerFuture = outsideDataPicker.submit(()->{
-//			while(executionFlg){
-//				Data d = manager.popData();
-//				if(hooker != null){
-//					hooker.hook(d);
-//				}
-//			}
-//		});
 
 		System.out.println("(^_^) : Hello!! [" + hostState.getUserName() + "]");
 		System.out.println("(^_^) : Please enter the command. The command can be checked with [:help].");
@@ -329,8 +319,8 @@ public class Manipulator {
 
 	enum Order{
 		Help(":help",""),
-		OtherUserChatRoomCheck(":search (+bloadcastAddress)","他のユーザーが部屋を起動しているか確認します。"),
-		OherUserChatRoomAccess(":access +ipAddress","他ユーザーが起動している部屋にアクセスします。"),
+		OtherUserChatRoomCheck(":search"," (+bloadcastAddress) 他のユーザーが部屋を起動しているか確認します。"),
+		OherUserChatRoomAccess(":access ","+ipAddress 他ユーザーが起動している部屋にアクセスします。"),
 		HostChatRoomStart(":host","自身が部屋を起動します"),
 		Exit(":exit","システムを終了します。"),
 		NULL(null,null){
