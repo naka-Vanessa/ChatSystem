@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Data;
@@ -14,6 +15,8 @@ import jp.co.technica.communication.state.User;
 public class ChatRoomHost {
 	CommunicationManager consoleInputManager;
 	private ExecutorService consoleMessageThread = Executors.newSingleThreadExecutor();
+	private Future<?> consoleMessageFuture;
+
 	private final int  systemPortNumber;
 	private final int consolePortNumber;
 	private boolean executionFlg = false;
@@ -39,7 +42,8 @@ public class ChatRoomHost {
 
 	public void pushMessage(Message message){
 		User st = map.get(message.sourceIpAddress);
-		if(st != null && st.getUserName().equals(message.name)){
+		if(st != null && st.getUserName().equals(message.name) ||
+				hostState.getUserName().equals(message.name)){
 			System.out.println(String.format("%s@%s>%s", message.name,message.messageSourceIpAddress,message.message));
 			diffusionMessage(message);
 		}
@@ -60,6 +64,7 @@ public class ChatRoomHost {
 		startMessageInputConsole(); //blocked
 
 		executionFlg = false;
+		consoleMessageFuture.cancel(true);
 		consoleMessageThread.shutdown();
 	}
 
@@ -87,7 +92,7 @@ public class ChatRoomHost {
 	}
 
 	private void startHostMessageReceive(){
-		consoleMessageThread.submit(()->{
+		consoleMessageFuture = consoleMessageThread.submit(()->{
 			while(executionFlg){
 				Data d = consoleInputManager.popData();
 				if(d instanceof Message){

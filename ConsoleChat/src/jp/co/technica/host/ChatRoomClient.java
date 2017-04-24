@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Data;
@@ -14,6 +15,7 @@ public class ChatRoomClient {
 	CommunicationManager consoleInputManager;
 	private ExecutorService consoleMessageThread = Executors
 			.newSingleThreadExecutor();
+	private Future<?> consoleMessageFuture;
 	private final int systemPortNumber;
 	private final int consolePortNumber;
 	private boolean executionFlg = false;
@@ -55,6 +57,7 @@ public class ChatRoomClient {
 		startMessageInputConsole(); // blocked
 
 		executionFlg = false;
+		consoleMessageFuture.cancel(true);
 		consoleMessageThread.shutdown();
 	}
 
@@ -69,7 +72,7 @@ public class ChatRoomClient {
 	}
 
 	private void startHostMessageReceive() {
-		consoleMessageThread.submit(() -> {
+		consoleMessageFuture = consoleMessageThread.submit(() -> {
 			while (executionFlg) {
 				Data d = consoleInputManager.popData();
 				if (d instanceof Message) {

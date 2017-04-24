@@ -12,6 +12,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Connection;
@@ -34,7 +35,7 @@ public class Manipulator {
 	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
 	private boolean executionFlg =true;
 	private ExecutorService outsideDataPicker =  Executors.newSingleThreadExecutor();
-
+	private Future<?> pickerFuture;
 	private static Manipulator THIS_INSTANCE = new Manipulator();
 
 	interface IReceiveDataHooker{
@@ -45,8 +46,8 @@ public class Manipulator {
 	 * シングルトンインスタンス
 	 */
 	private Manipulator(){
-		outsideDataPicker.submit(()->{
-			while(executionFlg){
+		pickerFuture = outsideDataPicker.submit(()->{
+			while(true){
 				Data d = manager.popData();
 				if(hooker != null){
 					hooker.hook(d);
@@ -127,11 +128,11 @@ public class Manipulator {
 						for(InterfaceAddress ifa : ifaList){
 							InetAddress ad = ifa.getBroadcast();
 							if(ad == null)continue;
-							System.out.println(ad.getHostAddress());
+							System.out.println(">" + ad.getHostAddress());
 						}
 					}
 
-					System.out.println("INPUT>");
+					System.out.print("BloadCastAddress INPUT>");
 					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 					String address = br.readLine();
 					bloadCastAddress = address;
@@ -285,6 +286,7 @@ public class Manipulator {
 	public void exit(){
 		executionFlg = false;
 		manager.exit();
+		pickerFuture.cancel(true);
 		outsideDataPicker.shutdown();
 	}
 

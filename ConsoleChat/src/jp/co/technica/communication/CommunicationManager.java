@@ -12,9 +12,9 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import jp.co.technica.communication.CommunicationReceiver.IPacketHandler;
@@ -32,10 +32,10 @@ public class CommunicationManager {
 	private boolean executionFlg = true;
 	private static final int PACKET_SIZE = 2048;
 
-	private ConcurrentLinkedQueue<Data> receiveQueue;
-	private Object receiveLockObject = new Object();
-	private ConcurrentLinkedQueue<Data> sendQueue;
-	private Object sendLockObject = new Object();
+	private LinkedBlockingQueue<Data> receiveQueue;
+//	private Object receiveLockObject = new Object();
+	private LinkedBlockingQueue<Data> sendQueue;
+//	private Object sendLockObject = new Object();
 	private final IPacketHandler handl;
 	private final IPacketCreater creater;
 	/**
@@ -57,10 +57,7 @@ public class CommunicationManager {
 				ObjectInput in = new ObjectInputStream(new ByteArrayInputStream(data));
 				Object o = in.readObject();
 				if(o instanceof Data){
-					synchronized(receiveLockObject){
-						receiveQueue.add((Data)o);
-						receiveLockObject.notifyAll();
-					}
+					receiveQueue.add((Data)o);
 				}
 			}catch(IOException | ClassNotFoundException e){
 
@@ -71,15 +68,9 @@ public class CommunicationManager {
 			try{
 			    DatagramPacket packet = null;
 				while(executionFlg){
-					Data d = sendQueue.poll();
-					if(d == null){
-						synchronized(sendLockObject){
-							try{
-								sendLockObject.wait();
-							}catch(InterruptedException e){
-							}
-						}
-					}else{
+					Data d;
+					try {
+						d = sendQueue.take();
 					    ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					    ObjectOutput out = new ObjectOutputStream(bos);
 					    out.writeObject(d);
@@ -87,8 +78,11 @@ public class CommunicationManager {
 					    if(bytes.length <= PACKET_SIZE){
 					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
 					    }
-					    break;
+					} catch (InterruptedException e) {
+						// TODO 自動生成された catch ブロック
+						e.printStackTrace();
 					}
+				    break;
 				}
 			    return packet;
 			}catch(IOException e){
@@ -108,7 +102,7 @@ public class CommunicationManager {
 			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
 		}
-		receiveQueue = new ConcurrentLinkedQueue<>();
+		receiveQueue = new LinkedBlockingQueue<>();
 	}
 
 	private void createCommunicationSender() {
@@ -118,7 +112,7 @@ public class CommunicationManager {
 			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
 		}
-		sendQueue = new ConcurrentLinkedQueue<>();
+		sendQueue = new LinkedBlockingQueue<>();
 	}
 
 	/**
@@ -126,8 +120,6 @@ public class CommunicationManager {
 	 * CommunicationManagerが生成されたと同時に起動します。
 	 */
 	private void start() {
-//		socket.connect(hostAddress, hostPortNumber);
-//		System.out.println("socket : " + socket.isConnected());
 		executionFlg=true;
 		if (receiver != null) {
 			System.out.println("receiver run start");
@@ -143,15 +135,15 @@ public class CommunicationManager {
 		executionFlg = false;
 		if (receiver != null) {
 			receiver.exit();
-			synchronized(receiveLockObject){
-				receiveLockObject.notifyAll();
-			}
+//			synchronized(receiveLockObject){
+//				receiveLockObject.notifyAll();
+//			}
 		}
 		if (sender != null) {
 			sender.exit();
-			synchronized(sendLockObject){
-				sendLockObject.notifyAll();
-			}
+//			synchronized(sendLockObject){
+//				sendLockObject.notifyAll();
+//			}
 		}
 		threadPool.shutdown();
 		try {
@@ -164,18 +156,11 @@ public class CommunicationManager {
 
 	public Data popData(){
 		Data d = null;
-		synchronized(receiveLockObject){
-			while(executionFlg){
-				d = receiveQueue.poll();
-				if(d == null){
-					try {
-						receiveLockObject.wait();
-					} catch (InterruptedException e) {
-					}
-				}else{
-					break;
-				}
-			}
+		try {
+			d = receiveQueue.take();
+		} catch (InterruptedException e) {
+			// TODO 自動生成された catch ブロック
+			e.printStackTrace();
 		}
 		return d;
 	}
@@ -183,9 +168,6 @@ public class CommunicationManager {
 	public void sendData(Data d){
 		d.sourceIpAddress = hostAddress.getHostAddress();
 		sendQueue.add(d);
-		synchronized (sendLockObject) {
-			sendLockObject.notifyAll();
-		}
 	}
 
 	/**
