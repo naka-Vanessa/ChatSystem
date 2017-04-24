@@ -5,6 +5,8 @@ import jp.co.technica.communication.state.User;
 public class Connection extends Data{
 	public static final int COMAND_TYPE_REQUEST = 0;
 	public static final int COMAND_TYPE_ANSWER = 1;
+	public static final int COMAND_TYPE_FORCED = 2;
+
 
 	public boolean connectionFlg = false;
 	public int comandType = 0;

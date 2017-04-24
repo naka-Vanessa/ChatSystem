@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +34,7 @@ public class Manipulator {
 
 	private IReceiveDataHooker hooker;
 	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
+
 	private boolean executionFlg =true;
 	private ExecutorService outsideDataPicker =  Executors.newSingleThreadExecutor();
 	private Future<?> pickerFuture;
@@ -222,16 +224,21 @@ public class Manipulator {
 			}
 
 			if(ret.connectionFlg){
-				ChatRoomClient cr = new ChatRoomClient(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,ret.user,(Message m)->{
+				ChatRoomClient crc = new ChatRoomClient(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,ret.user,(Message m)->{
 					manager.sendData(m);
 				});
 				System.out.println(String.format("☆★☆[%s@%s]に参加☆★☆", ret.user.getUserName(),ret.user.getIpAddr()));
 				hooker = (Data d)->{
 					if(d instanceof Message){
-						cr.pushMessage((Message)d);
+						crc.pushMessage((Message)d);
+					}else if(d instanceof Connection){
+						Connection c = (Connection)d;
+						if(c.comandType == Connection.COMAND_TYPE_FORCED && c.connectionFlg == false){
+
+						}
 					}
 				};
-				cr.executeHostInput();
+				crc.executeHostInput();
 
 				connect.connectionFlg = false;
 
@@ -307,7 +314,21 @@ public class Manipulator {
 				}
 			}
 		};
+		System.out.println("created the room.");
 		crh.executeHostInput();
+		System.out.println("closed the room.");
+		//残りのユーザーにルームを閉じたことを伝える
+		Collection<User> users = crh.getClientUserList();
+		for(User u :users){
+			Connection c = new Connection();
+			c.remoteIpAddress = u.getIpAddr();
+			c.comandType = Connection.COMAND_TYPE_FORCED;
+			c.connectionFlg = false;
+			c.user = hostState;
+			manager.sendData(c);
+		}
+
+
 		hooker = NULL_HOOKER;
 	}
 

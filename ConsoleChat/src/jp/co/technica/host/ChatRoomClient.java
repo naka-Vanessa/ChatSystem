@@ -20,8 +20,8 @@ public class ChatRoomClient {
 	private final int consolePortNumber;
 	private boolean executionFlg = false;
 	private final IPushMessageListener ipml;
-	private final User hostState;
-	private final User remoteState;
+	private User hostState;
+	private User remoteState;
 
 	public interface IPushMessageListener {
 		void pushMessage(Message message);
@@ -37,6 +37,7 @@ public class ChatRoomClient {
 	}
 
 	public void pushMessage(Message message) {
+		if(remoteState == null)return;
 		if (message.sourceIpAddress.equals(hostState.getIpAddr())
 				|| message.sourceIpAddress.equals(remoteState.getIpAddr())) {
 			System.out.println(String.format("%s@%s>%s", message.name,
@@ -60,6 +61,10 @@ public class ChatRoomClient {
 		consoleInputManager.exit();
 		consoleMessageFuture.cancel(true);
 		consoleMessageThread.shutdown();
+	}
+
+	public void executeForciblyLeaveRoom(){
+		remoteState = null;
 	}
 
 	private void diffusionMessage(Message message) {

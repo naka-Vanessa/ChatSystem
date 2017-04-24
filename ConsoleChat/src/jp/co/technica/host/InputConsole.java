@@ -26,8 +26,6 @@ public class InputConsole {
 		String remoteIpAddress = args[2];
 		String remoteUserName = args[3];
 
-		System.out.println(systemPortNumber + " " + consolePortNumber + " " + remoteIpAddress + " " + remoteUserName);
-
 		CommunicationManager manager = CommunicationManager.createCommunicationManagerSendOnly(consolePortNumber,systemPortNumber,false);
 		System.out.println("Enter [:exit] to end input");
 		while(true){
@@ -51,6 +49,5 @@ public class InputConsole {
 			}
 		}
 		manager.exit();
-		System.out.println("END");
 	}
 }

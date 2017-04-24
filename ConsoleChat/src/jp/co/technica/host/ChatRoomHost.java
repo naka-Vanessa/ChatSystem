@@ -2,6 +2,7 @@ package jp.co.technica.host;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -56,6 +57,9 @@ public class ChatRoomHost {
 		map.remove(user.getIpAddr());
 	}
 
+	public Collection<User> getClientUserList(){
+		return map.values();
+	}
 	/**
 	 * チャットルームをスタートします。<br>
 	 * コンソールが表示され、そこからテキストを入力します。<br>
