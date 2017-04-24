@@ -156,8 +156,6 @@ public class CommunicationManager {
 		try {
 			d = receiveQueue.take();
 		} catch (InterruptedException e) {
-			// TODO 自動生成された catch ブロック
-			e.printStackTrace();
 		}
 		return d;
 	}

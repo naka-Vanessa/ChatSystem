@@ -253,6 +253,7 @@ public class Manipulator {
 					ans.comandType = Inquire.COMAND_TYPE_ANSWER;
 					ans.name = hostState.getUserName();
 					ans.remoteIpAddress = inq.sourceIpAddress;
+					ans.sourceIpAddress = hostState.getIpAddr();
 					manager.sendData(ans);
 				}
 			}else if(d instanceof Connection){
