@@ -12,8 +12,11 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -24,18 +27,16 @@ import jp.co.technica.communication.data.Data;
 public class CommunicationManager {
 	private CommunicationSender sender;
 	private CommunicationReceiver receiver;
-//	private DatagramSocket socket;
 	private final int hostPortNumber;
 	private final int remotePortNumber;
-	private final ExecutorService threadPool = Executors.newFixedThreadPool(10);
+	private final ExecutorService threadPool = Executors.newFixedThreadPool(2);
+	private List<Future<?>> futures = new ArrayList<>();
 	private InetAddress hostAddress;
 	private boolean executionFlg = true;
 	private static final int PACKET_SIZE = 2048;
 
 	private LinkedBlockingQueue<Data> receiveQueue;
-//	private Object receiveLockObject = new Object();
 	private LinkedBlockingQueue<Data> sendQueue;
-//	private Object sendLockObject = new Object();
 	private final IPacketHandler handl;
 	private final IPacketCreater creater;
 	/**
@@ -79,8 +80,6 @@ public class CommunicationManager {
 					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
 					    }
 					} catch (InterruptedException e) {
-						// TODO 自動生成された catch ブロック
-						e.printStackTrace();
 					}
 				    break;
 				}
@@ -123,11 +122,11 @@ public class CommunicationManager {
 		executionFlg=true;
 		if (receiver != null) {
 			System.out.println("receiver run start");
-			threadPool.execute(receiver);
+			futures.add(threadPool.submit(receiver));
 		}
 		if (sender != null) {
 			System.out.println("sender run start");
-			threadPool.execute(sender);
+			futures.add(threadPool.submit(sender));
 		}
 	}
 
@@ -135,15 +134,13 @@ public class CommunicationManager {
 		executionFlg = false;
 		if (receiver != null) {
 			receiver.exit();
-//			synchronized(receiveLockObject){
-//				receiveLockObject.notifyAll();
-//			}
 		}
 		if (sender != null) {
 			sender.exit();
-//			synchronized(sendLockObject){
-//				sendLockObject.notifyAll();
-//			}
+		}
+		//Sender・Receiverでブロックされている制御を解放
+		for(Future<?> future : futures){
+			future.cancel(true);
 		}
 		threadPool.shutdown();
 		try {

@@ -21,7 +21,7 @@ public class CommunicationSender implements Runnable{
 	 */
 //	CommunicationSender(DatagramSocket socket,IPacketCreater creater) {
 	CommunicationSender(IPacketCreater creater) throws SocketException {
-		this.socket = new DatagramSocket();
+		socket = new DatagramSocket();
 		this.creater = creater;
 	}
 	@Override
@@ -37,11 +37,11 @@ public class CommunicationSender implements Runnable{
 				}
 			}
 		}
+		socket.close();
 	}
 
 	public void exit(){
 		continuationFlg = false;
-		socket.close();
 	}
 
 }

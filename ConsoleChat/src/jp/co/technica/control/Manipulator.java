@@ -47,7 +47,7 @@ public class Manipulator {
 	 */
 	private Manipulator(){
 		pickerFuture = outsideDataPicker.submit(()->{
-			while(true){
+			while(executionFlg){
 				Data d = manager.popData();
 				if(hooker != null){
 					hooker.hook(d);

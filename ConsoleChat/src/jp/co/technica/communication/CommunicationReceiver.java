@@ -11,7 +11,6 @@ public class CommunicationReceiver implements Runnable{
 	private boolean continuationFlg = false;
 	private DatagramPacket packet;
 	private final IPacketHandler handr;
-	private final DatagramPacket blockReleasePacket;
 
 	interface IPacketHandler{
 		void popPackt(DatagramPacket packet);
@@ -24,10 +23,10 @@ public class CommunicationReceiver implements Runnable{
 	 */
 //	CommunicationReceiver(DatagramSocket socket,IPacketHandler handr,int packetSize){
 	CommunicationReceiver(InetAddress hostAddress,int hostPortNumber, IPacketHandler handr,int packetSize) throws SocketException{
-		this.socket = new DatagramSocket(hostPortNumber,hostAddress);
+		socket = new DatagramSocket(hostPortNumber,hostAddress);
+		socket.setBroadcast(true);
 		continuationFlg = true;
 		packet = new DatagramPacket(new byte[2048], 2048);
-		blockReleasePacket = new DatagramPacket(new byte[1], 1,hostAddress,hostPortNumber);
 		this.handr = handr;
 	}
 
@@ -37,20 +36,21 @@ public class CommunicationReceiver implements Runnable{
 			try {
 				socket.receive(packet);
 				handr.popPackt(packet);
+			} catch (SocketException e){
+				if(continuationFlg == false){
+					//終了処理でブロックを解放する方法がないため、継続フラグが落ちていたら無視する。
+				}else{
+					e.printStackTrace();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		socket.close();
 	}
 
 	public void exit(){
 		continuationFlg = false;
-		try {
-			socket.send(blockReleasePacket);
-		} catch (IOException e) {
-			// TODO 自動生成された catch ブロック
-			e.printStackTrace();
-		}
-		socket.close();
+		socket.close(); //Futuer.cancel() でブロックが解放されないため、強引に閉じる
 	}
 }
