@@ -46,14 +46,6 @@ public class Manipulator {
 	 * シングルトンインスタンス
 	 */
 	private Manipulator(){
-		pickerFuture = outsideDataPicker.submit(()->{
-			while(executionFlg){
-				Data d = manager.popData();
-				if(hooker != null){
-					hooker.hook(d);
-				}
-			}
-		});
 	}
 
 	public static Manipulator getInstance(){
@@ -67,6 +59,15 @@ public class Manipulator {
 		}
 
 		manager = CommunicationManager.createCommunicationManager(MAIN_PROCESS_PORT_NUMBER,true);
+
+		pickerFuture = outsideDataPicker.submit(()->{
+			while(executionFlg){
+				Data d = manager.popData();
+				if(hooker != null){
+					hooker.hook(d);
+				}
+			}
+		});
 
 		System.out.println("Hello [" + hostState.getUserName() + "]");
 		System.out.println("Please enter the command. The command can be checked with [:help].");
@@ -146,15 +147,7 @@ public class Manipulator {
 			}
 			Inquire idata = new Inquire();
 
-			idata.remoteIpAddress = remoteAddress.getHostAddress();
-			idata.sourceIpAddress = InetAddress.getLocalHost().getHostName();
-			idata.comandType = Inquire.COMAND_TYPE_INQUIRE;
-			manager.sendData(idata);
-
-			System.out.print("Please wait ");
-
 			List<Inquire> list = new ArrayList<>();
-
 			hooker = (Data d) ->{
 				if(d instanceof Inquire){
 					Inquire inquire = (Inquire)d;
@@ -163,6 +156,15 @@ public class Manipulator {
 					}
 				}
 			};
+
+
+			idata.remoteIpAddress = remoteAddress.getHostAddress();
+			idata.sourceIpAddress = InetAddress.getLocalHost().getHostName();
+			idata.comandType = Inquire.COMAND_TYPE_INQUIRE;
+			manager.sendData(idata);
+
+			System.out.print("Please wait ");
+
 
 			for(int i= 0;i<5;i++){
 				Thread.sleep(1000);

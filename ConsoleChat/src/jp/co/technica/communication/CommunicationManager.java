@@ -58,7 +58,7 @@ public class CommunicationManager {
 				ObjectInput in = new ObjectInputStream(new ByteArrayInputStream(data));
 				Object o = in.readObject();
 				if(o instanceof Data){
-					receiveQueue.add((Data)o);
+					receiveQueue.offer((Data)o);
 				}
 			}catch(IOException | ClassNotFoundException e){
 
@@ -156,6 +156,7 @@ public class CommunicationManager {
 		try {
 			d = receiveQueue.take();
 		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 		return d;
 	}
