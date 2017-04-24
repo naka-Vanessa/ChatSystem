@@ -225,6 +225,7 @@ public class Manipulator {
 				ChatRoomClient cr = new ChatRoomClient(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,ret.user,(Message m)->{
 					manager.sendData(m);
 				});
+				System.out.println(String.format("☆★☆[%s@%s]に参加☆★☆", ret.user.getUserName(),ret.user.getIpAddr()));
 				hooker = (Data d)->{
 					if(d instanceof Message){
 						cr.pushMessage((Message)d);
