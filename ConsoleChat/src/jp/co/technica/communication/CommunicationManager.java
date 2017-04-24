@@ -46,11 +46,8 @@ public class CommunicationManager {
 	 */
 	private CommunicationManager(int hostPortNumber,int remotePortNumber,boolean bloadCast) throws SocketException, UnknownHostException {
 		hostAddress = Inet4Address.getLocalHost();
-		System.out.println(hostAddress.getHostAddress() + "   " + hostPortNumber);
 		this.hostPortNumber = hostPortNumber;
 		this.remotePortNumber = remotePortNumber;
-//		socket = new DatagramSocket(hostPortNumber,hostAddress);
-//		socket.setBroadcast(true);
 
 		handl = (pac) -> {
 			byte[] data = pac.getData();
@@ -121,11 +118,9 @@ public class CommunicationManager {
 	private void start() {
 		executionFlg=true;
 		if (receiver != null) {
-			System.out.println("receiver run start");
 			futures.add(threadPool.submit(receiver));
 		}
 		if (sender != null) {
-			System.out.println("sender run start");
 			futures.add(threadPool.submit(sender));
 		}
 	}
@@ -148,7 +143,6 @@ public class CommunicationManager {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-//		socket.close();
 	}
 
 	public Data popData(){
