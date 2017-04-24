@@ -2,6 +2,7 @@ package jp.co.technica.host;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -51,6 +52,9 @@ public class ChatRoomHost {
 	public void addClientUser(User user){
 		map.put(user.getIpAddr(), user);
 	}
+	public void subClientUser(User user){
+		map.remove(user.getIpAddr());
+	}
 
 	/**
 	 * チャットルームをスタートします。<br>
@@ -69,26 +73,17 @@ public class ChatRoomHost {
 	}
 
 	private void diffusionMessage(Message message){
-//		for(Entry<String, User> s : map.entrySet()){
-//			User st = s.getValue();
-//			if(st.getIpAddr().equals(message.messageSourceIpAddress)){
-//				continue;
-//			}
-//			Message m = new Message();
-//			m.copy(message);
-//			m.remoteIpAddress = st.getIpAddr();
-//			m.sourceIpAddress = hostState.getIpAddr();
-//			ipml.pushMessage(m);
-//		}
-		User st = map.get(message.sourceIpAddress);
-		if(st != null && st.getUserName().equals(message.name)){
+		for(Entry<String, User> s : map.entrySet()){
+			User st = s.getValue();
+			if(st.getIpAddr().equals(message.messageSourceIpAddress)){
+				continue;
+			}
 			Message m = new Message();
 			m.copy(message);
 			m.remoteIpAddress = st.getIpAddr();
 			m.sourceIpAddress = hostState.getIpAddr();
 			ipml.pushMessage(m);
 		}
-
 	}
 
 	private void startHostMessageReceive(){

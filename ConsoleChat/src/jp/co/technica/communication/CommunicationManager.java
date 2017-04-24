@@ -156,7 +156,6 @@ public class CommunicationManager {
 		try {
 			d = receiveQueue.take();
 		} catch (InterruptedException e) {
-			e.printStackTrace();
 		}
 		return d;
 	}

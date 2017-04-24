@@ -194,15 +194,17 @@ public class Manipulator {
 			Connection connect = new Connection();
 
 			connect.remoteIpAddress = remoteAddress.getHostAddress();
-//			connect.remoteIpAddress = "192.168.1.255";
 			connect.sourceIpAddress = hostState.getIpAddr();
 			connect.user = hostState;
 			connect.comandType = Connection.COMAND_TYPE_REQUEST;
+			connect.connectionFlg = true;
 
 			manager.sendData(connect);
 
 			System.out.print("Please wait ");
+
 			Connection ret = new Connection();
+
 			hooker = (Data d) ->{
 				if(d instanceof Connection){
 					Connection con = (Connection)d;
@@ -230,6 +232,12 @@ public class Manipulator {
 				};
 				cr.executeHostInput();
 
+				connect.connectionFlg = false;
+
+				manager.sendData(connect);
+
+				System.out.println("left the room.");
+
 			}else{
 				System.out.println("Connection failed...");
 			}
@@ -242,12 +250,12 @@ public class Manipulator {
 		hooker = NULL_HOOKER;
 	}
 	private void executeHostChatRoomStart(String[] commands){
-		ChatRoomHost cr = new ChatRoomHost(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,(Message m)->{
+		ChatRoomHost crh = new ChatRoomHost(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,(Message m)->{
 			manager.sendData(m);
 		});
 		hooker = (Data d)->{
 			if(d instanceof Message){
-				cr.pushMessage((Message)d);
+				crh.pushMessage((Message)d);
 			}else if(d instanceof Inquire){
 				Inquire inq = (Inquire)d;
 				if(inq.comandType == Inquire.COMAND_TYPE_INQUIRE){
@@ -261,28 +269,44 @@ public class Manipulator {
 			}else if(d instanceof Connection){
 				Connection con = (Connection)d;
 				if(con.comandType == Connection.COMAND_TYPE_REQUEST){
-					Connection ans = new Connection();
-					ans.remoteIpAddress = con.sourceIpAddress;
-					ans.comandType = Connection.COMAND_TYPE_ANSWER;
-					ans.connectionFlg = true;
-					ans.user = hostState;
+					if(con.connectionFlg){
+						Connection ans = new Connection();
+						ans.remoteIpAddress = con.sourceIpAddress;
+						ans.comandType = Connection.COMAND_TYPE_ANSWER;
+						ans.connectionFlg = true;
+						ans.user = hostState;
 
-					Message m = new Message();
-					m.sourceIpAddress = hostState.getIpAddr();
-					m.messageSourceIpAddress = hostState.getIpAddr();
-					m.name = hostState.getUserName();
-					try{
-						m.message = String.format("☆★☆[%s@%s]が参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
-					}catch(Exception e){
-						e.printStackTrace();
+						Message m = new Message();
+						m.sourceIpAddress = hostState.getIpAddr();
+						m.messageSourceIpAddress = hostState.getIpAddr();
+						m.name = hostState.getUserName();
+						try{
+							m.message = String.format("☆★☆[%s@%s]が参加☆★☆", con.user.getUserName(),con.user.getIpAddr());
+						}catch(Exception e){
+							e.printStackTrace();
+						}
+						crh.pushMessage(m);
+						crh.addClientUser(con.user);
+						manager.sendData(ans);
+					}else{
+
+						crh.subClientUser(con.user);
+
+						Message m = new Message();
+						m.sourceIpAddress = hostState.getIpAddr();
+						m.messageSourceIpAddress = hostState.getIpAddr();
+						m.name = hostState.getUserName();
+						try{
+							m.message = String.format("### [%s@%s]が退出 ###", con.user.getUserName(),con.user.getIpAddr());
+						}catch(Exception e){
+							e.printStackTrace();
+						}
+						crh.pushMessage(m);
 					}
-					cr.pushMessage(m);
-					cr.addClientUser(con.user);
-					manager.sendData(ans);
 				}
 			}
 		};
-		cr.executeHostInput();
+		crh.executeHostInput();
 		hooker = NULL_HOOKER;
 	}
 
