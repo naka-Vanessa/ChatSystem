@@ -320,7 +320,7 @@ public class Manipulator {
 	enum Order{
 		Help(":help",""),
 		OtherUserChatRoomCheck(":search"," (+bloadcastAddress) 他のユーザーが部屋を起動しているか確認します。"),
-		OherUserChatRoomAccess(":access ","+ipAddress 他ユーザーが起動している部屋にアクセスします。"),
+		OherUserChatRoomAccess(":access","+ipAddress 他ユーザーが起動している部屋にアクセスします。"),
 		HostChatRoomStart(":host","自身が部屋を起動します"),
 		Exit(":exit","システムを終了します。"),
 		NULL(null,null){
