@@ -235,6 +235,7 @@ public class Manipulator {
 						Connection c = (Connection)d;
 						if(c.comandType == Connection.COMAND_TYPE_FORCED && c.connectionFlg == false){
 							crc.executeForciblyLeaveRoom();
+							System.out.println("接続先のルームが終了しました。");
 						}
 					}
 				};
