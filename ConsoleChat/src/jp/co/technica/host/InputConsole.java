@@ -27,7 +27,7 @@ public class InputConsole {
 		String remoteUserName = args[3];
 
 		CommunicationManager manager = CommunicationManager.createCommunicationManagerSendOnly(consolePortNumber,systemPortNumber,false);
-		System.out.println("Enter [:exit] to end input");
+		System.out.println("(^_^) : Enter [:exit] to end input");
 		while(true){
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));

@@ -24,12 +24,19 @@ import jp.co.technica.communication.CommunicationReceiver.IPacketHandler;
 import jp.co.technica.communication.CommunicationSender.IPacketCreater;
 import jp.co.technica.communication.data.Data;
 
+/**
+ * 通信を管理するマネージャークラスです。<br>
+ * CommunicationReceiverが拾ったデータ・CommunicationSenderが送るべきデータ
+ *
+ * @author masaki
+ *
+ */
 public class CommunicationManager {
 	private CommunicationSender sender;
 	private CommunicationReceiver receiver;
 	private final int hostPortNumber;
 	private final int remotePortNumber;
-	private final ExecutorService threadPool = Executors.newFixedThreadPool(2);
+	private final ExecutorService threadPool = Executors.newFixedThreadPool(3);
 	private List<Future<?>> futures = new ArrayList<>();
 	private InetAddress hostAddress;
 	private boolean executionFlg = true;
@@ -37,8 +44,16 @@ public class CommunicationManager {
 
 	private LinkedBlockingQueue<Data> receiveQueue;
 	private LinkedBlockingQueue<Data> sendQueue;
-	private final IPacketHandler handl;
-	private final IPacketCreater creater;
+//	private final IPacketHandler handl;
+//	private final IPacketCreater creater;
+
+	private volatile IReceiveDataHooker hooker;
+	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
+	public interface IReceiveDataHooker{
+		void hook(Data d);
+	}
+
+
 	/**
 	 * ファクトリーメソッドから生成
 	 * @throws SocketException
@@ -48,52 +63,26 @@ public class CommunicationManager {
 		hostAddress = Inet4Address.getLocalHost();
 		this.hostPortNumber = hostPortNumber;
 		this.remotePortNumber = remotePortNumber;
-
-		handl = (pac) -> {
-			byte[] data = pac.getData();
-			try{
-				ObjectInput in = new ObjectInputStream(new ByteArrayInputStream(data));
-				Object o = in.readObject();
-				if(o instanceof Data){
-					receiveQueue.offer((Data)o);
-				}
-			}catch(IOException | ClassNotFoundException e){
-
-			}
-		};
-
-		creater = () ->{
-			try{
-			    DatagramPacket packet = null;
-				while(executionFlg){
-					Data d;
-					try {
-						d = sendQueue.take();
-					    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					    ObjectOutput out = new ObjectOutputStream(bos);
-					    out.writeObject(d);
-					    byte[] bytes = bos.toByteArray();
-					    if(bytes.length <= PACKET_SIZE){
-					    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
-					    }
-					} catch (InterruptedException e) {
-					}
-				    break;
-				}
-			    return packet;
-			}catch(IOException e){
-
-			}
-			return null;
-		};
-
-
 	}
 
 	private void createCommunicationReceiver() {
 //		receiver = new CommunicationReceiver(socket, handl,PACKET_SIZE);
 		try {
+			IPacketHandler handl = (pac) -> {
+				byte[] data = pac.getData();
+				try{
+					ObjectInput in = new ObjectInputStream(new ByteArrayInputStream(data));
+					Object o = in.readObject();
+					if(o instanceof Data){
+						receiveQueue.offer((Data)o);
+					}
+				}catch(IOException | ClassNotFoundException e){
+
+				}
+			};
+
 			receiver = new CommunicationReceiver(hostAddress, hostPortNumber,handl,PACKET_SIZE);
+
 		} catch (SocketException e) {
 			// TODO 自動生成された catch ブロック
 			e.printStackTrace();
@@ -103,6 +92,31 @@ public class CommunicationManager {
 
 	private void createCommunicationSender() {
 		try {
+			IPacketCreater creater = () ->{
+				try{
+				    DatagramPacket packet = null;
+					while(executionFlg){
+						Data d;
+						try {
+							d = sendQueue.take();
+						    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						    ObjectOutput out = new ObjectOutputStream(bos);
+						    out.writeObject(d);
+						    byte[] bytes = bos.toByteArray();
+						    if(bytes.length <= PACKET_SIZE){
+						    	packet = new DatagramPacket(bytes, bytes.length, InetAddress.getByName(d.remoteIpAddress),this.remotePortNumber);
+						    }
+						} catch (InterruptedException e) {
+						}
+					    break;
+					}
+				    return packet;
+				}catch(IOException e){
+
+				}
+				return null;
+			};
+
 			sender = new CommunicationSender(creater);
 		} catch (SocketException e) {
 			// TODO 自動生成された catch ブロック
@@ -119,6 +133,14 @@ public class CommunicationManager {
 		executionFlg=true;
 		if (receiver != null) {
 			futures.add(threadPool.submit(receiver));
+			futures.add(threadPool.submit(()->{
+				while(executionFlg){
+					Data d = popData();
+					if(hooker != null){
+						hooker.hook(d);
+					}
+				}
+			}));
 		}
 		if (sender != null) {
 			futures.add(threadPool.submit(sender));
@@ -145,7 +167,8 @@ public class CommunicationManager {
 		}
 	}
 
-	public Data popData(){
+//	public Data popData(){
+	private Data popData(){
 		Data d = null;
 		try {
 			d = receiveQueue.take();
@@ -154,6 +177,12 @@ public class CommunicationManager {
 		return d;
 	}
 
+	public void setHocker(IReceiveDataHooker hooker){
+		this.hooker = hooker;
+	}
+	public void removeHocker(){
+		hooker = NULL_HOOKER;
+	}
 	public void sendData(Data d){
 		d.sourceIpAddress = hostAddress.getHostAddress();
 		sendQueue.add(d);
@@ -178,6 +207,11 @@ public class CommunicationManager {
 		}
 		return c;
 	}
+	/**
+	 * CommunicationManagerインスタンスを返します
+	 *
+	 * @return
+	 */
 	public static CommunicationManager createCommunicationManager(
 			int portNumber,boolean bloadcast) {
 		return createCommunicationManager(portNumber,portNumber,bloadcast);
@@ -200,6 +234,11 @@ public class CommunicationManager {
 		}
 		return c;
 	}
+	/**
+	 * 送信のみ可能なCommunicationManagerインスタンスを返します
+	 *
+	 * @return
+	 */
 	public static CommunicationManager createCommunicationManagerSendOnly(
 			int portNumber,boolean bloadcast) {
 		return createCommunicationManagerSendOnly(portNumber,portNumber,bloadcast);
@@ -224,6 +263,11 @@ public class CommunicationManager {
 		return c;
 	}
 
+	/**
+	 * 受信のみ可能なCommunicationManagerインスタンスを返します
+	 *
+	 * @return
+	 */
 	public static CommunicationManager createCommunicationManagerReceiveOnly(
 			int portNumber,boolean bloadcast) {
 		return createCommunicationManagerReceiveOnly(portNumber,portNumber,bloadcast);

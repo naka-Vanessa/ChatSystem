@@ -2,9 +2,6 @@ package jp.co.technica.host;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Data;
@@ -13,12 +10,8 @@ import jp.co.technica.communication.state.User;
 
 public class ChatRoomClient {
 	CommunicationManager consoleInputManager;
-	private ExecutorService consoleMessageThread = Executors
-			.newSingleThreadExecutor();
-	private Future<?> consoleMessageFuture;
 	private final int systemPortNumber;
 	private final int consolePortNumber;
-	private boolean executionFlg = false;
 	private final IPushMessageListener ipml;
 	private User hostState;
 	private User remoteState;
@@ -52,15 +45,11 @@ public class ChatRoomClient {
 	 * コンソールが閉じられるまで制御がブロックされます。
 	 */
 	public void executeHostInput() {
-		executionFlg = true;
 		createHostMessageReceiver();
 		startHostMessageReceive();
 		startMessageInputConsole(); // blocked
 
-		executionFlg = false;
 		consoleInputManager.exit();
-		consoleMessageFuture.cancel(true);
-		consoleMessageThread.shutdown();
 	}
 
 	public void executeForciblyLeaveRoom(){
@@ -78,19 +67,15 @@ public class ChatRoomClient {
 	}
 
 	private void startHostMessageReceive() {
-		consoleMessageFuture = consoleMessageThread.submit(() -> {
-			while (executionFlg) {
-				Data d = consoleInputManager.popData();
-				if (d instanceof Message) {
-					Message m = (Message) d;
-					m.name = hostState.getUserName();
-					m.messageSourceIpAddress = hostState.getIpAddr();
+		consoleInputManager.setHocker((Data d)->{
+			if (d instanceof Message) {
+				Message m = (Message) d;
+				m.name = hostState.getUserName();
+				m.messageSourceIpAddress = hostState.getIpAddr();
 
-					pushMessage(m);
-				}
+				pushMessage(m);
 			}
 		});
-
 	}
 
 	private void startMessageInputConsole() {

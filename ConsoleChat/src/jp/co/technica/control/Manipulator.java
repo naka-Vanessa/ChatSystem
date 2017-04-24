@@ -11,9 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Connection;
@@ -32,17 +29,7 @@ public class Manipulator {
 	private static final int INPUT_CONSOLE_SENDER_PORT_NUMBER = 54322;
 	private static final int INPUT_CONSOLE_RECEIVER_PORT_NUMBER = 54323;
 
-	private IReceiveDataHooker hooker;
-	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
-
-	private boolean executionFlg =true;
-	private ExecutorService outsideDataPicker =  Executors.newSingleThreadExecutor();
-	private Future<?> pickerFuture;
 	private static Manipulator THIS_INSTANCE = new Manipulator();
-
-	interface IReceiveDataHooker{
-		void hook(Data d);
-	}
 
 	/**
 	 * シングルトンインスタンス
@@ -62,17 +49,17 @@ public class Manipulator {
 
 		manager = CommunicationManager.createCommunicationManager(MAIN_PROCESS_PORT_NUMBER,true);
 
-		pickerFuture = outsideDataPicker.submit(()->{
-			while(executionFlg){
-				Data d = manager.popData();
-				if(hooker != null){
-					hooker.hook(d);
-				}
-			}
-		});
+//		pickerFuture = outsideDataPicker.submit(()->{
+//			while(executionFlg){
+//				Data d = manager.popData();
+//				if(hooker != null){
+//					hooker.hook(d);
+//				}
+//			}
+//		});
 
-		System.out.println("Hello!! [" + hostState.getUserName() + "]");
-		System.out.println("Please enter the command. The command can be checked with [:help].");
+		System.out.println("(^_^) : Hello!! [" + hostState.getUserName() + "]");
+		System.out.println("(^_^) : Please enter the command. The command can be checked with [:help].");
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		boolean loop = true;
 		while(loop){
@@ -105,15 +92,15 @@ public class Manipulator {
 			}
 		}
 		exit();
-		System.out.println("see you soon !!");
+		System.out.println("(^_^) : see you soon !!");
 	}
 
 	private void executeHelp(String[] commands){
-		System.out.println("[" + Order.OtherUserChatRoomCheck.commandDefinition +" (bloadcastAddress)]:他のユーザーが部屋を起動しているか確認します。");
-		System.out.println("[" + Order.OherUserChatRoomAccess.commandDefinition + " ipAddress]:他ユーザーが起動している部屋にアクセスします。");
-		System.out.println("[" + Order.HostChatRoomStart.commandDefinition + "]:自身が部屋を起動します");
-		System.out.println("[" + Order.Exit.commandDefinition + "]:システムを終了します。");
-		System.out.println("※()で囲まれているものは省略可能");
+		System.out.println(String.format("[%s]:%s", Order.OtherUserChatRoomCheck.commandDefinition,Order.OtherUserChatRoomCheck.message));
+		System.out.println(String.format("[%s]:%s", Order.OherUserChatRoomAccess.commandDefinition,Order.OherUserChatRoomAccess.message));
+		System.out.println(String.format("[%s]:%s", Order.HostChatRoomStart.commandDefinition,Order.HostChatRoomStart.message));
+		System.out.println(String.format("[%s]:%s", Order.Exit.commandDefinition,Order.Exit.message));
+		System.out.println("※+のついているものは引数。()で囲まれているものは省略可能");
 	}
 
 	private void executeOtherUserChatRoomCheck(String[] commands){
@@ -121,7 +108,7 @@ public class Manipulator {
 			InetAddress remoteAddress;
 			if(commands.length  < 2 || commands[1].equals("")){
 				if(bloadCastAddress == null || bloadCastAddress.isEmpty()){
-					System.out.println("Please select a broadcast address.");
+					System.out.println("(^_^) : Please select a broadcast address.");
 
 					//ブロードキャストアドレスの検索・表示
 					Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
@@ -150,14 +137,14 @@ public class Manipulator {
 			Inquire idata = new Inquire();
 
 			List<Inquire> list = new ArrayList<>();
-			hooker = (Data d) ->{
+			manager.setHocker((Data d) ->{
 				if(d instanceof Inquire){
 					Inquire inquire = (Inquire)d;
 					if(inquire.comandType == Inquire.COMAND_TYPE_ANSWER){
 						list.add(inquire);
 					}
 				}
-			};
+			});
 
 
 			idata.remoteIpAddress = remoteAddress.getHostAddress();
@@ -165,16 +152,16 @@ public class Manipulator {
 			idata.comandType = Inquire.COMAND_TYPE_INQUIRE;
 			manager.sendData(idata);
 
-			System.out.print("Please wait ");
+			System.out.print("(^_^) : Please wait ");
 
 
-			for(int i= 0;i<5;i++){
+			for(int i= 0;i<6;i++){
 				Thread.sleep(1000);
 				System.out.print(".");
 			}
 			System.out.println();
-			hooker = null;
-			System.out.println("Address that responded");
+			manager.removeHocker();
+			System.out.println("(^_^) : Address that responded");
 			for(Inquire inq : list){
 				System.out.println(String.format(">%s@%s", inq.sourceIpAddress,inq.name));
 			}
@@ -183,7 +170,7 @@ public class Manipulator {
 			e.printStackTrace();
 		}
 
-		hooker = NULL_HOOKER;
+		manager.removeHocker();
 	}
 	private void executeOtherUserOherUserChatRoomAccess(String[] commands){
 		try {
@@ -203,11 +190,11 @@ public class Manipulator {
 
 			manager.sendData(connect);
 
-			System.out.println("Please wait ");
+			System.out.println("(^_^) : Please wait ");
 
 			Connection ret = new Connection();
 
-			hooker = (Data d) ->{
+			manager.setHocker((Data d) ->{
 				if(d instanceof Connection){
 					Connection con = (Connection)d;
 					if(con.sourceIpAddress.equals(remoteAddress.getHostAddress()) &&
@@ -216,7 +203,7 @@ public class Manipulator {
 						ret.user = con.user;
 					}
 				}
-			};
+			});
 
 			for(int i= 0;i<10;i++){
 				Thread.sleep(1000);
@@ -228,7 +215,8 @@ public class Manipulator {
 					manager.sendData(m);
 				});
 				System.out.println(String.format("☆★☆[%s@%s]に参加☆★☆", ret.user.getUserName(),ret.user.getIpAddr()));
-				hooker = (Data d)->{
+
+				manager.setHocker((Data d)->{
 					if(d instanceof Message){
 						crc.pushMessage((Message)d);
 					}else if(d instanceof Connection){
@@ -238,17 +226,18 @@ public class Manipulator {
 							System.out.println("接続先のルームが終了しました。");
 						}
 					}
-				};
+				});
+
 				crc.executeHostInput();
 
 				connect.connectionFlg = false;
 
 				manager.sendData(connect);
 
-				System.out.println("left the room.");
+				System.out.println("(^_^) : left the room.");
 
 			}else{
-				System.out.println("Connection failed...");
+				System.out.println("(;_;) : Connection failed...");
 			}
 
 		} catch (IOException | InterruptedException e) {
@@ -256,13 +245,13 @@ public class Manipulator {
 			e.printStackTrace();
 		}
 
-		hooker = NULL_HOOKER;
+		manager.removeHocker();
 	}
 	private void executeHostChatRoomStart(String[] commands){
 		ChatRoomHost crh = new ChatRoomHost(INPUT_CONSOLE_RECEIVER_PORT_NUMBER,INPUT_CONSOLE_SENDER_PORT_NUMBER,hostState,(Message m)->{
 			manager.sendData(m);
 		});
-		hooker = (Data d)->{
+		manager.setHocker((Data d)->{
 			if(d instanceof Message){
 				crh.pushMessage((Message)d);
 			}else if(d instanceof Inquire){
@@ -314,10 +303,10 @@ public class Manipulator {
 					}
 				}
 			}
-		};
-		System.out.println("created the room.");
+		});
+		System.out.println("(^_^) : created the room.");
 		crh.executeHostInput();
-		System.out.println("closed the room.");
+		System.out.println("(^_^) : closed the room.");
 		//残りのユーザーにルームを閉じたことを伝える
 		Collection<User> users = crh.getClientUserList();
 		for(User u :users){
@@ -330,34 +319,36 @@ public class Manipulator {
 		}
 
 
-		hooker = NULL_HOOKER;
+		manager.removeHocker();
 	}
 
 	public void exit(){
-		executionFlg = false;
 		manager.exit();
-		pickerFuture.cancel(true);
-		outsideDataPicker.shutdown();
 	}
 
 
 	enum Order{
-		Help(":help"),
-		OtherUserChatRoomCheck(":search"),
-		OherUserChatRoomAccess(":access"),
-		HostChatRoomStart(":host"),
-		Exit(":exit"),
-		NULL(null);
+		Help(":help",""),
+		OtherUserChatRoomCheck(":search (+bloadcastAddress)","他のユーザーが部屋を起動しているか確認します。"),
+		OherUserChatRoomAccess(":access +ipAddress","他ユーザーが起動している部屋にアクセスします。"),
+		HostChatRoomStart(":host","自身が部屋を起動します"),
+		Exit(":exit","システムを終了します。"),
+		NULL(null,null){
+			@Override
+			boolean isAccurateCommand(String command){
+				return false;
+			}
+		};
 		public final String commandDefinition;
+		public final String message;
 
-		Order(String commandDefinition){
+		Order(String commandDefinition,String message){
 			this.commandDefinition = commandDefinition;
+			this.message = message;
 		}
 
 		boolean isAccurateCommand(String command){
-			boolean ret = false;
-			if(commandDefinition != null)ret = commandDefinition.equals(command);
-			return ret;
+			return commandDefinition.equals(command);
 		};
 
 		private static Order getOrder(String command){
