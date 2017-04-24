@@ -84,7 +84,6 @@ public class ChatRoomClient {
 					pushMessage(m);
 				}
 			}
-			System.out.println("console receive out");
 		});
 
 	}
