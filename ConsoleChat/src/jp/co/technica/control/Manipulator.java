@@ -237,7 +237,7 @@ public class Manipulator {
 						inq.name));
 			}
 		} catch (IOException | InterruptedException e) {
-			// TODO 自動生成された catch ブロック
+			bloadCastAddress = "";
 			e.printStackTrace();
 		}
 
