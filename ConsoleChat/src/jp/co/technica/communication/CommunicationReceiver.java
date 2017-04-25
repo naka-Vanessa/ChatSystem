@@ -6,12 +6,34 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
+/**
+ * 受信専用のスレッド処理（Runnable）クラス
+ * このクラスでは、やり取りするデータのフォーマットに依存させない。
+ * IPacketHandlerインターフェースを通して上位にパケットデータを渡し、上位にデータを作らせる。
+ * @author masaki
+ *
+ */
 public class CommunicationReceiver implements Runnable{
+	/**
+	 * UDPソケット
+	 */
 	private final DatagramSocket socket;
-	private boolean continuationFlg = false;
+	/**
+	 * 継続実施フラグ
+	 */
+	private boolean continuationFlg = true;
+	/**
+	 * パケット
+	 */
 	private DatagramPacket packet;
+	/**
+	 * 受信したパケットを扱うためのインターフェース
+	 */
 	private final IPacketHandler handr;
 
+	/**
+	 * 受信したパケットを扱うためのインターフェース
+	 */
 	interface IPacketHandler{
 		void popPackt(DatagramPacket packet);
 	}
@@ -21,11 +43,9 @@ public class CommunicationReceiver implements Runnable{
 	 * @param socket
 	 * @throws SocketException
 	 */
-//	CommunicationReceiver(DatagramSocket socket,IPacketHandler handr,int packetSize){
 	CommunicationReceiver(InetAddress hostAddress,int hostPortNumber, IPacketHandler handr,int packetSize) throws SocketException{
 		socket = new DatagramSocket(hostPortNumber,hostAddress);
 		socket.setBroadcast(true);
-		continuationFlg = true;
 		packet = new DatagramPacket(new byte[2048], 2048);
 		this.handr = handr;
 	}
@@ -49,6 +69,9 @@ public class CommunicationReceiver implements Runnable{
 		socket.close();
 	}
 
+	/**
+	 * 受信スレッドの終了
+	 */
 	public void exit(){
 		continuationFlg = false;
 		socket.close(); //Futuer.cancel() でブロックが解放されないため、強引に閉じる

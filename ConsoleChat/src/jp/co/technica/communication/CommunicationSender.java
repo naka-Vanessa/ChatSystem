@@ -5,12 +5,34 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
+/**
+ * 送信用スレッド処理（Runnable）
+ * このクラスでは、やり取りするデータのフォーマットに依存させない。
+ * IPacketCreaterインターフェースを通して上位にパケットデータを作らせる。
+ *
+ * @author masaki
+ *
+ */
 public class CommunicationSender implements Runnable{
+
+	/**
+	 * UDPソケット
+	 */
 	private final DatagramSocket socket;
+
+	/**
+	 * 継続実施フラグ
+	 */
 	private boolean continuationFlg = true;
+	/**
+	 * パケットを作るためのインターフェース
+	 */
 	private final IPacketCreater creater;
 
 
+	/**
+	 * パケットを作るためのインターフェース<br>
+	 */
 	interface IPacketCreater{
 		DatagramPacket createPacket();
 	}
@@ -19,7 +41,6 @@ public class CommunicationSender implements Runnable{
 	 * パッケージプライベート
 	 * @throws SocketException
 	 */
-//	CommunicationSender(DatagramSocket socket,IPacketCreater creater) {
 	CommunicationSender(IPacketCreater creater) throws SocketException {
 		socket = new DatagramSocket();
 		this.creater = creater;
@@ -40,6 +61,9 @@ public class CommunicationSender implements Runnable{
 		socket.close();
 	}
 
+	/**
+	 * 送信スレッド終了
+	 */
 	public void exit(){
 		continuationFlg = false;
 	}

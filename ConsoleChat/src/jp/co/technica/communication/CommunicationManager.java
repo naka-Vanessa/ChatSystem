@@ -26,29 +26,83 @@ import jp.co.technica.communication.data.Data;
 
 /**
  * 通信を管理するマネージャークラスです。<br>
- * CommunicationReceiverが拾ったデータ・CommunicationSenderが送るべきデータ
+ * CommunicationReceiverが拾ったデータ・CommunicationSenderが送るべきデータを管理します。
+ * 受信データをもらう場合は、IReceiveDataHookerを実装したインスタンスをsetHooker()で登録してください。
  *
  * @author masaki
  *
  */
 public class CommunicationManager {
+	/**
+	 * 送信用クラス
+	 */
 	private CommunicationSender sender;
+	/**
+	 * 受信用クラス
+	 */
 	private CommunicationReceiver receiver;
+	/**
+	 * Receiverとして受けるポート番号
+	 */
 	private final int hostPortNumber;
+	/**
+	 * Senderとして送る先のポート番号
+	 */
 	private final int remotePortNumber;
-	private final ExecutorService threadPool = Executors.newFixedThreadPool(3);
+
+	/**
+	 * Receiver、DataPicker、Sender用のスレッド
+	 */
+	private final ExecutorService thread = Executors.newFixedThreadPool(3);
+	/**
+	 * Receiver、DataPicker、SenderのFuture<br>
+	 * 主にブロック状態にあるスレッドの制御を解放するために使用
+	 */
 	private List<Future<?>> futures = new ArrayList<>();
+	/**
+	 * アプリケーションを起動しているマシンのIPアドレス<br>
+	 * LANカードが複数刺さっている場合このアプリは死んでしまう…。
+	 */
 	private InetAddress hostAddress;
+
+	/**
+	 * 実行の継続を意味するフラグ<br>
+	 * exit()がたたかれたときにfalseになる。
+	 */
 	private boolean executionFlg = true;
+
+	/**
+	 * パケットのバッファサイズ<br>
+	 * この値にあまり意味はなく、適当につけた。
+	 */
 	private static final int PACKET_SIZE = 2048;
 
+	/**
+	 * 受信したデータをため込むキュー<br>
+	 */
 	private LinkedBlockingQueue<Data> receiveQueue;
+	/**
+	 * 送信するデータをため込むキュー
+	 */
 	private LinkedBlockingQueue<Data> sendQueue;
-//	private final IPacketHandler handl;
-//	private final IPacketCreater creater;
 
-	private volatile IReceiveDataHooker hooker;
+	/**
+	 * 受信データを処理するインターフェースの実装<br>
+	 * インターフェースを通してデータを渡す。<br>
+	 */
+	private volatile IReceiveDataHooker hooker = NULL_HOOKER;
+
+	/**
+	 * 何も処理が無いフック。<br>
+	 * hooker変数がnullにならないようにするために定義されている。
+	 */
 	private static final IReceiveDataHooker NULL_HOOKER = (Data d)->{};
+
+	/**
+	 * 拾ったデータの処理を定義するためのインターフェース
+	 * @author masaki
+	 *
+	 */
 	public interface IReceiveDataHooker{
 		void hook(Data d);
 	}
@@ -65,8 +119,13 @@ public class CommunicationManager {
 		this.remotePortNumber = remotePortNumber;
 	}
 
+
+	/**
+	 * 受信スレッドに関する情報の生成<br>
+	 * IPacketHandlerはCommunicationReceiverのパケットを処理するためのインターフェースである。<br>
+	 *
+	 */
 	private void createCommunicationReceiver() {
-//		receiver = new CommunicationReceiver(socket, handl,PACKET_SIZE);
 		try {
 			IPacketHandler handl = (pac) -> {
 				byte[] data = pac.getData();
@@ -90,6 +149,12 @@ public class CommunicationManager {
 		receiveQueue = new LinkedBlockingQueue<>();
 	}
 
+	/**
+	 * 送信スレッドに関する情報の生成<br>
+	 * IPacketCreaterはCommunicationSenderのパケットを作成するためのインターフェースである。<br>
+	 * 送信するDataが規定値のバイト数を超えている場合、パケットを作成しない。
+	 *
+	 */
 	private void createCommunicationSender() {
 		try {
 			IPacketCreater creater = () ->{
@@ -127,26 +192,30 @@ public class CommunicationManager {
 
 	/**
 	 * 受信・送信クラスをスタートします。<br>
-	 * CommunicationManagerが生成されたと同時に起動します。
+	 * CommunicationManagerが生成されたと同時に起動します。<br>
+	 * DataPickerのスレッドも起動します。
 	 */
 	private void start() {
 		executionFlg=true;
 		if (receiver != null) {
-			futures.add(threadPool.submit(receiver));
-			futures.add(threadPool.submit(()->{
+			futures.add(thread.submit(receiver));
+			//DataPicker
+			futures.add(thread.submit(()->{
 				while(executionFlg){
 					Data d = popData();
-					if(hooker != null){
-						hooker.hook(d);
-					}
+					hooker.hook(d);
 				}
 			}));
 		}
 		if (sender != null) {
-			futures.add(threadPool.submit(sender));
+			futures.add(thread.submit(sender));
 		}
 	}
 
+	/**
+	 * 通信を終了します。
+	 * Receiver・DataPicker・Senderのすべてが停止します。
+	 */
 	public void exit() {
 		executionFlg = false;
 		if (receiver != null) {
@@ -159,15 +228,18 @@ public class CommunicationManager {
 		for(Future<?> future : futures){
 			future.cancel(true);
 		}
-		threadPool.shutdown();
+		thread.shutdown();
 		try {
-			threadPool.awaitTermination(10, TimeUnit.SECONDS);
+			thread.awaitTermination(10, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
-//	public Data popData(){
+	/**
+	 * 受信用キューからデータを取り出します。
+	 * @return
+	 */
 	private Data popData(){
 		Data d = null;
 		try {
@@ -177,12 +249,26 @@ public class CommunicationManager {
 		return d;
 	}
 
+	/**
+	 * 受信データをもらって処理を行うIReceiveDataHooker実装インスタンスをセットします。
+	 * @return
+	 */
 	public void setHocker(IReceiveDataHooker hooker){
 		this.hooker = hooker;
 	}
+
+	/**
+	 * 受信データをもらって処理を行うIReceiveDataHookerの空処理インスタンスをセットします。
+	 */
 	public void removeHocker(){
 		hooker = NULL_HOOKER;
 	}
+
+	/**
+	 * Dataを継承したコマンドを送信します。<br>
+	 * このメソッド内でData.sourceIpAddressの値を設定します。
+	 * @param d
+	 */
 	public void sendData(Data d){
 		d.sourceIpAddress = hostAddress.getHostAddress();
 		sendQueue.add(d);
@@ -241,6 +327,8 @@ public class CommunicationManager {
 	 */
 	public static CommunicationManager createCommunicationManagerSendOnly(
 			int portNumber,boolean bloadcast) {
+		//送り元・送り先のポート番号が同じであれば、ソケットは１つで良い
+		//だが、余裕が無いのでそうなるような処理は入れない
 		return createCommunicationManagerSendOnly(portNumber,portNumber,bloadcast);
 	}
 

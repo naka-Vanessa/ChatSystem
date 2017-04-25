@@ -12,7 +12,9 @@ public class Main {
 	 * @param args  0:ユーザー名
 	 */
 	public static void main(String[] args){
-		if(args.length == 0)throw new IllegalArgumentException("ユーザー名を入力してください。");
+		if(args.length == 0){
+			throw new IllegalArgumentException("ユーザー名を入力してください。起動方法：[java -cp ConsoleChat.jar jp.co.technica.Main ユーザー名]");
+		}
 		String ip;
 		try {
 			ip = InetAddress.getLocalHost().getHostAddress();

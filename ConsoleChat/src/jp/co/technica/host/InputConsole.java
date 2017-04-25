@@ -7,6 +7,11 @@ import java.io.InputStreamReader;
 import jp.co.technica.communication.CommunicationManager;
 import jp.co.technica.communication.data.Message;
 
+/**
+ * クライアント・ホストに対し送信するメッセージを入力するための入力コンソール
+ * @author masaki
+ *
+ */
 public class InputConsole {
 
 	/**
@@ -26,10 +31,11 @@ public class InputConsole {
 		String remoteIpAddress = args[2];
 		String remoteUserName = args[3];
 
+		//送信のみを行う通信監理クラスを起動
 		CommunicationManager manager = CommunicationManager.createCommunicationManagerSendOnly(consolePortNumber,systemPortNumber,false);
 		System.out.println("(^_^) : Enter [:exit] to end input");
 		while(true){
-
+			//コンソール入力
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			String input;
 
@@ -37,8 +43,10 @@ public class InputConsole {
 				System.out.println(String.format("%s@%s>", remoteUserName,remoteIpAddress));
 				input = br.readLine();
 
+				//終了コマンドを叩かれたら終了
 				if(":exit".equals(input))break;
 
+				//入力文字をメッセージとして作成し、システム側に送信
 				Message m = new Message();
 				m.remoteIpAddress = remoteIpAddress;
 				m.message = input;
